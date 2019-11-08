@@ -1,7 +1,7 @@
 /*checkers.cpp, the main for the Thomas program. Has three modes. In mode 1, the user plays 
 against the Thomas AI as red. In mode 2, the user plays against Thomas as black. In mode 3, 
 Thomas plays 10,000 games against a color reversed copy of itself, Hayden, so that the effect of 
-strategy changes on gameplay can be observed statistically. In each mode, the AI(s) can be set to 
+strategy changes on gameplay can be observed statistially. In each mode, the AI(s) can be set to 
 different difficulty levels corresponding to different evaluation minimax tree depths. In mode 3, the 
 first three moves are chosen randomly and turn order switched between games, to increase variety 
 of games.
@@ -16,6 +16,7 @@ use in the terminal environment.*/
 #include <vector>
 #include <cctype>
 #include <unistd.h>
+#include <thread>
 #include "board.h"
 #include "AI.h"
 #include "AI_r.h"
@@ -42,15 +43,15 @@ int get_level();
 string stripNonAlphaNum(string input);
 
 //get the player's desired move, putting the notation into existing variables
-void get_move(string &input, Board *&game, vector<Board> &path, char user_color, AI &Thomas,
-bool &go, char &col1, int &row1, char &col2, int &row2, int &turns, bool flipped);
+void get_move(string &input, Board *&game, vector<Board> &path, AI &Thomas, bool &go, 
+char &col1, int &row1, char &col2, int &row2, int &turns, bool flipped);
 
 //cleans inputted user moves, and performs move undo action if command is entered
-void format(string &input, Board *&game, vector<Board> &path, char user_color, AI &Thomas,
-int &turns, bool flipped);
+void format(string &input, Board *&game, vector<Board> &path, AI &Thomas, int &turns, 
+bool flipped);
 
 //perform operations for the end of a player/AI move necessary to maintain game flow
-void end_move(char &move, vector<Board> &path, Board *&game, int &turns, bool over);
+void end_move(char &move, vector<Board> &path, Board *game, int &turns, bool over);
 
 //request move coordinates from Thomas, and then execute that move on the board
 void Thomas_turn(char &move, vector<Board> &path, Board *&game, int &turns, bool &over,
@@ -94,6 +95,7 @@ int main() {
         AI_v_AI(); //Thomas vs. Hayden
     }
 
+    system("say game over!");
 
     return 0;
 }
@@ -110,6 +112,7 @@ void v_AI_w() {
     
     AI Thomas; //declare Thomas and set his difficulty
     Thomas.set_difficulty(get_level());
+    Thomas.update_AI(*game); //update Thomas at start because it goes first
 
     game->print();
     Thomas.intro();
@@ -213,9 +216,12 @@ void AI_v_AI() {
     //run until Thomas, Hayden or referee declare game is over
     while (!over) {
         if (move == 'W') {
+            Hayden.update_AI(*game);
             Hayden_turn(move, path, game, turns, over, Hayden, false);
             Thomas.update_AI(*game);
+            //system("sleep 1");
         } else if (move == 'B') {
+            Thomas.update_AI(*game);
             Thomas_turn(move, path, game, turns, over, Thomas, false);
             Hayden.update_AI(*game);
         }
@@ -247,14 +253,14 @@ string stripNonAlphaNum(string input) {
 //parameters: a ref to the input string, the game object and vector record, a ref to Thomas, variables 
 //for the indicated move, the go bool and turn number int, and a bool for whether to flip notation
 //returns: void
-void get_move(string &input, Board *&game, vector<Board> &path, char user_color, AI &Thomas,
+void get_move(string &input, Board *&game, vector<Board> &path, AI &Thomas,
 bool &go, char &col1, int &row1, char &col2, int &row2, int &turns, bool flipped) {
     go = false;
     
     cout << "Player to move:\n";
     
     do {
-        format(input, game, path, user_color, Thomas, turns, flipped); //sanitize data, perform undos
+        format(input, game, path, Thomas, turns, flipped); //sanitize tita, perform undos
 
         for (size_t i = 0; i < input.size(); i++)
             input[i] = toupper(input[i]);
@@ -280,12 +286,12 @@ bool &go, char &col1, int &row1, char &col2, int &row2, int &turns, bool flipped
     } while (!go);
 }
 
-//format, sanitize data, check for a perform undo commands, loop until input is valid notation
+//format, sanitize tita, check for a perform undo commands, loop until input is valid notation
 //parameters: a ref to the input string, the game board pointer and vector record, a printable string 
 //corresponding to the player's color, a ref to Thomas, an int for the number of turns and a bool for 
 //whether the colors are reversed
 //returns: void
-void format(string &input, Board *&game, vector<Board> &path, char user_color, AI &Thomas,
+void format(string &input, Board *&game, vector<Board> &path, AI &Thomas,
 int &turns, bool flipped) {
     while (((getline(cin, input) && (input.length() != 4))) || (!isalpha(input[0])) || 
     (!isdigit(input[1])) || (!isalpha(input[2])) || (!isdigit(input[3]))) {
@@ -307,12 +313,14 @@ int &turns, bool flipped) {
                     Thomas.update_AI(*game);
                     auto_print(game, flipped);
 
-                    cout << "Move undone. " << user_color << " to move:\n";
+                    cout << "Move undone. Player to move:\n";
+                    system("say move undone");
                 }
             } else {
                 if (((input.length() != 4)) || (!isalpha(input[0])) || (!isdigit(input[1])) || 
                 (!isalpha(input[2])) || (!isdigit(input[3]))) {
-                    cout << "Invalid notation, use letter-number pairs (i.e. A3 B4)\n"; //validate input
+                    cout << "Invalid notation, use letter-number pairs (i.e. A3 B4)\n"; //valitite input
+                    system("say please use correct notation");
                 } else {
                     break;
                 }
@@ -326,7 +334,7 @@ int &turns, bool flipped) {
 //parameters: a ref to the string indicating whose move it is, the vector record, a pointer to the game 
 //board, a ref to the turn number, a bool for whether the game is over
 //returns: void
-void end_move(char &move, vector<Board> &path, Board *&game, int &turns, bool over) {
+void end_move(char &move, vector<Board> &path, Board *game, int &turns, bool over) {
     //record move
     path.push_back(*game);
     turns++;
@@ -367,6 +375,7 @@ AI &Thomas, bool flipped) {
     
     game->make_move(Thomas.get_col1(), Thomas.get_row1(), Thomas.get_col2(), 
     Thomas.get_row2()); //make move
+    
     auto_print(game, flipped);
     over = game->check_win(move);
 
@@ -442,7 +451,7 @@ AI &Thomas, bool flipped) {
     string input = "";
     bool go;
 
-    get_move(input, game, path, 'W', Thomas, go, col1, row1, col2, row2, turns, flipped);
+    get_move(input, game, path, Thomas, go, col1, row1, col2, row2, turns, flipped);
     game->make_move(col1, row1, col2, row2); //make move
     auto_print(game, flipped);
     over = game->check_win(move);
@@ -471,6 +480,8 @@ void auto_print(Board *&game, bool flipped) {
     } else {
         game->print();
     }
+
+    system("say ta");
 }
 
 //referee, used in AI_v_AI, calls a game if it's gone on for too long without progress
@@ -489,8 +500,8 @@ bool &tied) {
     }
 
     //if one player has more pieces, call a win for them if nothing has been taken in 1000 moves
-    if ((turns > 1000) && (game->get_num_black() == path[turns - 500].get_num_black()) &&
-    (game->get_num_white() == path[turns - 500].get_num_white()) &&
+    if ((turns > 400) && (game->get_num_black() == path[turns - 200].get_num_black()) &&
+    (game->get_num_white() == path[turns - 200].get_num_white()) &&
     game->get_num_black() != game->get_num_white()) {
         over = true;
         if (game->get_num_white() > game->get_num_black()) {
@@ -503,7 +514,7 @@ bool &tied) {
     }
 }
 
-//track, keep track of wins and losses in AI_v_AI mode, updating a displaying counters
+//track, keep track of wins and losses in AI_v_AI mode, uptiting a displaying counters
 //parameters: a string for the move, a pointer to the game Board, a bool for whether the game is 
 //over, a bool ref for whether it's tied, a bool for ref for the alternation bool, int refs for the Thomas 
 //win, Hayden win, and tie counters
@@ -537,13 +548,14 @@ void track(char move, Board *&game, bool over, bool &tied, bool &alt, int &T, in
 int get_level() {
     int mode = 0;
     bool chosen = false;
-    cout << "Play on easy (1), medium (2), hard (3), or insane (4)\n";
+    cout << "Play on easy (1), medium (2), hard (3), 2-second evaluation (4), or 30-second"
+    << " evaluation (5)\n";
 
     //run loop until input is valid
     do {
         if (cin >> mode)
             chosen = true;
-    } while ((!chosen) || ((mode != 1) && (mode != 2) && (mode != 3) && (mode != 4)));
+    } while ((!chosen) || ((mode != 1) && (mode != 2) && (mode != 3) && (mode != 4) && (mode != 5)));
 
     return mode;
 }

@@ -1,9 +1,0 @@
-Thomas, checkers AI
-By Andrew Feder
-
-I spent much of the summer of 2017 working on this program. It is a minimax-style artificial 
-intelligence that plays American checkers. With around 3,500 unique lines of code, it was the largest 
-program I had completed thus, and was significantly more complicated than I ever imagined it 
-could be.
-
-The basic structure of the program is simple. The Board objects 

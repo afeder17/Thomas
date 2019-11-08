@@ -1,8 +1,8 @@
 #Makefile for Thomas
 
-CXX      = clang++ -Ofast -std=c++11
-CXXFLAGS = -g3 -Wall -Wextra
-LDFLAGS  = -g3
+CXX      = clang++ -O3 -std=c++11
+CXXFLAGS = -g -Wall -Wextra
+LDFLAGS  = -g -pthread
 
 HDRS = AI.h AI_r.h board.h
 SRCS = checkers.cpp AI.cpp AI_r.cpp board.cpp

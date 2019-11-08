@@ -9,6 +9,7 @@ One of two AI objects, this one seen as "Thomas."*/
 #include <cstdlib>
 #include <string>
 #include <unordered_map>
+#include <thread>
 #include "board.h"
 
 using namespace std;
@@ -18,14 +19,60 @@ using namespace std;
 
 class AI {
     private:
-        //board held by AI to make decisions
-        Board *state;
-
+        /***AI state***/
+        
         //name of AI
         string name;
 
         //variable for difficulty level
         int difficulty;
+
+        //variables for time limit
+        long long start_time;
+        long long time_limit;
+    
+        /***Structs***/
+
+        //Game tree node
+        struct Node {
+            Board *position;
+            Node *options;
+            int score;
+            char row1, row2;
+            char col1, col2;
+        };
+
+        //stored position node
+        struct Mem_node {
+            char child_c[180];
+            char child_r[180];
+            int score;
+            char children;
+            char depth;
+        };
+
+        /***History information***/
+        
+        //transposition table, stores data from previous move evaluations
+        unordered_map<string, Mem_node> *memory = new unordered_map<string, Mem_node>;
+        
+        //hold last move to cause a beta-cutoff at each level
+        char killer_c[100] = {DIMEN + 'A'};
+        int killer_r[100] = {DIMEN};
+
+        int history[100][64][64];
+
+        int cutoffs[100];
+
+        /***~Threading~***/
+
+        //thread for background work
+        thread background;
+
+        /***Game and move state***/
+        
+        //board held by AI to make decisions
+        Board *state;
 
         //position variables for chosen move
         char col1, col2;
@@ -38,43 +85,20 @@ class AI {
         char d_col;
         int d_row;
 
-        //variables for alpha-beta pruning
-        int level1_max, level2_min, level3_max, level4_min, level5_max, level6_min, level7_max,
-        level8_min, level9_max, level10_min, level11_max, level12_min;
-
-        //rough measure of tree complexity at each move
-        int complexity;
-
         //whether or not to clear transposition table at start of next move
         bool clear;
 
+        /***Constants***/
+        
         //board size constant
         const static int DIMEN = 8;
 
-        //constants
+        //other constants
         const static char WHITE_PIECE = 'r', WHITE_KING = 'R';
         const static char BLACK_PIECE = 'b', BLACK_KING = 'B';
         const static char BLANK = ' ', BLACK_SQUARE = '-';
-        const static int NA = -INT_MAX;
-
-        struct Node {
-            Board *position;
-            int score;
-            Node *options;
-            char row1, row2;
-            int col1, col2;
-        };
-
-        struct Mem_node {
-            int children;
-            char child_c[90];
-            int child_r[90];
-            int depth;
-            int score;
-        };
-
-        //transposition table, stores data from previous move evaluations
-        unordered_map<string, Mem_node> memory;
+        const static int NA = -32000;
+        const static int DIMEN_LESS1 = 7;
         
         //evaluates how favorable a position is to the AI
         int calc(Board &ref);
@@ -109,61 +133,49 @@ class AI {
         int &r1, int &r2, bool copy, char &taken);
 
         //return the max value at the node, clean up arrays
-        int maximize(Node *start, char moves_c[], int moves_r[], int &make, int depth);
+        int maximize(Node *start, char moves_c[], int moves_r[], int count, int depth);
 
         //return the min value at the node, clean up arrays
-        int minimize(Node *start, char moves_c[], int moves_r[], int &make, int depth);
-
-        //evaluates future possible moves, at 1st level down, called by move() for divergent multi jumps
-        int deep0(Node *start);
-        
-        //evaluates future possible moves, 2nd level down
-        int deep1(Node* start);
-
-        //evaluates future possible moves, 3rd level down
-        int deep2(Node *start);
-
-        //evaluates future possible moves, 4th level down
-        int deep3(Node *start);
-
-        //evaluates future possible moves, 5th level down
-        int deep4(Node *start);
-
-        //evaluates future possible moves, 6th level down
-        int deep5(Node *start);
-
-        //evaluates future possible moves, 7th level down
-        int deep6(Node *start);
-
-        //evaluates future possible moves, 8th level down
-        int deep7(Node *start);
-
-        //evaluates future possible moves, 9th level down
-        int deep8(Node *start);
-
-        //evaluates future possible moves, 10th level down
-        int deep9(Node *start);
-
-        //evaluates future possible moves, 11th level down
-        int deep10(Node *start);
-
-        //evaluates future possible moves, 12th level down
-        int deep11(Node *start);
-
-        //evaluates future possible moves, 13th level down
-        int deep12(Node *start);
+        int minimize(Node *start, char moves_c[], int moves_r[], int count, int depth);
 
         //chooses a move after score evaluations have been made
-        void select(Node *start, int &count, int &make, char color);
+        int select(Node *start, int count, int make, char color);
 
         //same as above, but choose a next best move to avoid repetition
-        void select_second(Node *start, int &count, int &make);
+        int select_second(Node *start, int count, int make);
 
         //make a string key for a given Board
         string* make_key(Board &ref, char turn);
 
-        //counter for the numbers of possibilities evaluated
-        long tree;
+        //order moves to be checked for optimal pruning, for black
+        void b_order(char moves_c[], int moves_r[], int depth, int count);
+
+        //order moves to be checked for optimal pruning, for white
+        void w_order(char moves_c[], int moves_r[], int depth, int count);
+
+        //update killer move arrays with moves that cause beta cutoffs
+        void update_killer(char c1, int r1, char c2, int r2, int depth);
+
+        //function to free hash table from pointer, used by concurrent thread
+        void concurrent_table_free(unordered_map<string, Mem_node>* temp);
+
+        int deepw(Node *start, int depth);
+
+        int deepb(Node *start, int depth);
+
+        void iterative_deepening(bool sub);
+
+        void manage_memory();
+
+        void clear_history();
+
+        void pre_move(bool sub, bool go);
+
+        void evaluate_move_b(Node *start, char c1, int r1, char c2, int r2, int make, int depth);
+
+        void evaluate_move_w(Node *start, char c1, int r1, char c2, int r2, int make, int depth);
+
+        void choose_move(Node *start, int count, int make, bool sub);
 
     public:
         //constructor
@@ -199,9 +211,6 @@ class AI {
 
         //get column of second square
         int get_col2();
-
-        //roughly find complexity of position by multiplying number of possible moves for each side
-        int find_complexity();
 
 };
 #endif

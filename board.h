@@ -19,7 +19,7 @@ class Board {
         const static char BLANK = ' ';
         const static char BLACK_SQUARE = '-';
     
-        const static int DIMEN = 8, START_NUM = 12;
+        const static int DIMEN = 8, START_NUM = 12, DIMEN_LESS1 = 7;
 
         //struct holding the array position and type of a piece
         struct Place {
@@ -32,15 +32,15 @@ class Board {
         char game_board[DIMEN][DIMEN];
 
         //hashing key
-        string *key;
+        string key;
         
-        int *last_move; //records last move as array coordinates
+        int last_move[4]; //records last move as array coordinates
 
         bool just_kinged; //records whether a piece was kinged at the last move
 
         //arrays of the locations of the pieces of each color
-        Place *black_places;
-        Place *white_places;
+        Place black_places[START_NUM];
+        Place white_places[START_NUM];
 
         //the number of pieces of each color
         int num_black, num_white;
@@ -67,6 +67,12 @@ class Board {
         //checks if it's possible for a piece to move one square
         bool move_possible(char col, int row, char turn);
 
+        //more efficent, de-parametized version of move_possible for white pieces
+        bool move_possible_w(char col, int row);
+
+        //more efficent, de-parametized version of move_possible for black pieces
+        bool move_possible_b(char col, int row);
+
         //helper function to make_move, converts regular pieces to kings if called for
         void king_maker();
 
@@ -86,9 +92,6 @@ class Board {
 
         //copy constructor
         Board(const Board &other);
-
-        //destructor
-        ~Board();
 
         //modify board for reverse orientation
         void reverse();
@@ -151,43 +154,63 @@ class Board {
         char square(int row, int column);
 
         //gets value at a particular index array, but without protections for out of bounds
-        char look(int row, int column);
+        char look(int row, int column) {
+            return game_board[row][column];
+        }
 
         //gets status of just_kinged bool
-        bool kinged();
+        bool kinged() {
+            return just_kinged;
+        }
 
         //get an int corresponding to a row in the places array of a particular color
         int get_place_row(int num, char color);
 
         //get an int corresponding to a row in the white places array
-        int get_place_row_w(int num);
+        int get_place_row_w(int num) {
+            return white_places[num].row;
+        }
 
         //get an int corresponding to a row in the black places array
-        int get_place_row_b(int num);
+        int get_place_row_b(int num) {
+            return black_places[num].row;
+        }
 
         //get an int corresponding to a column in the places array of a particular color
         int get_place_col(int num, char color);
 
         //get an int corresponding to a column in the white places array
-        int get_place_col_w(int num);
+        int get_place_col_w(int num) {
+            return white_places[num].column;
+        }
 
         //get an int corresponding to a column in the black places array
-        int get_place_col_b(int num);
+        int get_place_col_b(int num) {
+            return black_places[num].column;
+        }
 
         //get a bool corresponding to whether a piece is a king in the places array of a particular color
         int get_place_king(int num, char color);
 
         //get a bool corresponding to whether a piece is a king in the white places array
-        int get_place_king_w(int num);
+        int get_place_king_w(int num) {
+            return white_places[num].king;
+        }
 
         //get a bool corresponding to whether a piece is a king in the black places array
-        int get_place_king_b(int num);
+        int get_place_king_b(int num) {
+            return black_places[num].king;
+        }
 
         //get number of black pieces
-        int get_num_black();
+        int get_num_black() {
+            return num_black;
+        }
 
         //get number of white pieces
-        int get_num_white();
+        int get_num_white() {
+            return num_white;
+        }
 
         //finds number of possible jumps for a piece, given its location
         int num_jumps(char col, int row);
@@ -196,7 +219,12 @@ class Board {
         bool same(Board ref2);
 
         //get a pointer to the Board's hashing key
-        string* get_key();
+        string* get_key() {
+            key[32] = 'N';
+            if (just_kinged)
+                key[32] = 'K';
+            return &key;
+        }
 
 };
 

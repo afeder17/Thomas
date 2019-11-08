@@ -128,8 +128,6 @@ void AI_r::move(bool sub) {
     delete [] moves_r;
     delete [] moves_c;
     delete [] start->options;
-
-    //cerr << tree << endl;
 }
 
 //multi, similar to move, but used when a piece has taken and my do so again. Evaluates best 

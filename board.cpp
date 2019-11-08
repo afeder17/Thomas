@@ -34,26 +34,22 @@ using namespace std;
 Board::Board() {
     fill_board(); //set board
     
-    last_move = new int[4];
-    
     for (int i = 0; i < 3; i++) {
         last_move[i] = DIMEN; //fill last move array with default, impossible values
     }
 
     just_kinged = false;
 
-    black_places = new Place[START_NUM];
-    white_places = new Place[START_NUM];
-
-    key = new string;
-    for (int i = 0; i < 66; i++)
-        key->push_back(' ');
+    for (int i = 0; i < 34; i++)
+        key.push_back(' ');
 
     int place = 0;
     for (int i = 0; i < DIMEN; i++) {
         for (int j = 0; j < DIMEN; j++) {
-            key->at(place) = game_board[i][j];
-            place++;
+            if (game_board[i][j] != BLANK) {
+                key[place] = game_board[i][j];
+                place++;
+            }
         }
     }
 
@@ -73,8 +69,6 @@ Board::Board(const Board &other) {
             game_board[i][j] = other.game_board[i][j];
         }
     }
-    
-    last_move = new int[4];
 
     for (int i = 0; i < 3; i++) {
         last_move[i] = other.last_move[i];
@@ -82,19 +76,16 @@ Board::Board(const Board &other) {
 
     just_kinged = other.just_kinged;
 
-    //copy over location/piece data
-    black_places = new Place[START_NUM];
-    white_places = new Place[START_NUM];
-
-    key = new string;
-    for (int i = 0; i < 66; i++)
-        key->push_back(' ');
+    for (int i = 0; i < 34; i++)
+        key.push_back(' ');
 
     int place = 0;
     for (int i = 0; i < DIMEN; i++) {
         for (int j = 0; j < DIMEN; j++) {
-            key->at(place) = game_board[i][j];
-            place++;
+            if (game_board[i][j] != BLANK) {
+                key[place] = game_board[i][j];
+                place++;
+            }
         }
     }
 
@@ -229,17 +220,6 @@ void Board::rando_r(int seed) {
         r2 = rand() % DIMEN;
     } while (!check_validity(c1, r1, c2, r2, 'B'));
     make_move(c1, r1, c2, r2);
-}
-
-//destructor
-//parameters: NA
-//returns: NA
-Board::~Board() {
-    //de-allocate dynamic parts of Board object
-    delete key;
-    delete [] last_move;
-    delete [] black_places;
-    delete [] white_places;
 }
 
 //fill_board, sets up board
@@ -428,11 +408,11 @@ void Board::make_move(char column1, int row1, char column2, int row2) {
     king_maker();
     update(col1, row1, col2, row2, taken);
 
-    key->at((row1 * 8) + col1) = game_board[row1][col1];
-    key->at((row2 * 8) + col2) = game_board[row2][col2];
+    key[((row1 * 8) + col1) / 2] = game_board[row1][col1];
+    key[((row2 * 8) + col2) / 2] = game_board[row2][col2];
 
     if (abs(row2 - row1) == 2)
-        key->at((((row1 + row2) / 2) * 8) + ((col1 + col2) / 2)) = BLACK_SQUARE;
+        key[((((row1 + row2) / 2) * 8) / 2) + (((col1 + col2) / 2)) / 2] = BLACK_SQUARE;
 }
 
 void Board::reverse_move(char column1, int row1, char column2, int row2, char taken, 
@@ -473,11 +453,11 @@ bool restore) {
     
     reverse_update(col1, row1, col2, row2, taken);
 
-    key->at((row1 * 8) + col1) = game_board[row1][col1];
-    key->at((row2 * 8) + col2) = game_board[row2][col2];
+    key[((row1 * 8) + col1) / 2] = game_board[row1][col1];
+    key[((row2 * 8) + col2) / 2] = game_board[row2][col2];
 
     if (abs(row2 - row1) == 2)
-        key->at((((row1 + row2) / 2) * 8) + ((col1 + col2) / 2)) = taken;
+        key[((((row1 + row2) / 2) * 8) / 2) + (((col1 + col2) / 2)) / 2] = taken;
 }
 
 //king_maker, helper function to make_move, scans back rows of board, converting men to kings
@@ -490,8 +470,8 @@ void Board::king_maker() {
         return;
     }
     
-    if (game_board[DIMEN - 1][last_move[2]] == BLACK_PIECE) {
-        game_board[DIMEN - 1][last_move[2]] = BLACK_KING;
+    if (game_board[DIMEN_LESS1][last_move[2]] == BLACK_PIECE) {
+        game_board[DIMEN_LESS1][last_move[2]] = BLACK_KING;
         just_kinged = true;
         return;
     }
@@ -691,14 +671,14 @@ bool Board::move_possible(char col, int row, char turn) {
         if (col < 'H') {
             if ((row > 0) && (game_board[row - 1][col + 1 - 'A'] == BLACK_SQUARE))
                 return true; //check up to the right
-            if ((row < DIMEN - 1) && (game_board[row + 1][col + 1 - 'A'] == BLACK_SQUARE) &&
+            if ((row < DIMEN_LESS1) && (game_board[row + 1][col + 1 - 'A'] == BLACK_SQUARE) &&
             (game_board[row][col - 'A'] == WHITE_KING))
                 return true; //check down to the right
         }
         if (col > 'A') {
             if ((row > 0) && (game_board[row - 1][col - 1 - 'A'] == BLACK_SQUARE))
                 return true; //check up to the left
-            if ((row < DIMEN - 1) && (game_board[row + 1][col - 1 - 'A'] == BLACK_SQUARE) &&
+            if ((row < DIMEN_LESS1) && (game_board[row + 1][col - 1 - 'A'] == BLACK_SQUARE) &&
             (game_board[row][col - 'A'] == WHITE_KING))
                 return true; //check down to the left
         }
@@ -707,16 +687,56 @@ bool Board::move_possible(char col, int row, char turn) {
             if ((row > 0) && (game_board[row - 1][col + 1 - 'A'] == BLACK_SQUARE) &&
             (game_board[row][col - 'A'] == BLACK_KING))
                 return true; //check up to the right
-            if ((row < DIMEN - 1) && (game_board[row + 1][col + 1 - 'A'] == BLACK_SQUARE))
+            if ((row < DIMEN_LESS1) && (game_board[row + 1][col + 1 - 'A'] == BLACK_SQUARE))
                 return true; //check down to the right
         }
         if (col > 'A') {
             if ((row > 0) && (game_board[row - 1][col - 1 - 'A'] == BLACK_SQUARE) &&
             (game_board[row][col - 'A'] == BLACK_KING))
                 return true; //check up to the left
-            if ((row < DIMEN - 1) && (game_board[row + 1][col - 1 - 'A'] == BLACK_SQUARE))
+            if ((row < DIMEN_LESS1) && (game_board[row + 1][col - 1 - 'A'] == BLACK_SQUARE))
                 return true; //check down to the left
         }
+    }
+
+    return false;
+}
+
+bool Board::move_possible_w(char col, int row) {
+    if (col > 'A') {
+        if ((row > 0) && (game_board[row - 1][col - 1 - 'A'] == BLACK_SQUARE))
+            return true; //check up to the left
+        if ((row < DIMEN_LESS1) && (game_board[row + 1][col - 1 - 'A'] == BLACK_SQUARE) &&
+        (game_board[row][col - 'A'] == WHITE_KING))
+            return true; //check down to the left
+    }
+
+    if (col < 'H') {
+        if ((row > 0) && (game_board[row - 1][col + 1 - 'A'] == BLACK_SQUARE))
+            return true; //check up to the right
+        if ((row < DIMEN_LESS1) && (game_board[row + 1][col + 1 - 'A'] == BLACK_SQUARE) &&
+        (game_board[row][col - 'A'] == WHITE_KING))
+            return true; //check down to the right
+    }
+
+    return false;
+}
+
+bool Board::move_possible_b(char col, int row) {
+    if (col > 'A') {
+        if ((row > 0) && (game_board[row - 1][col - 1 - 'A'] == BLACK_SQUARE) &&
+        (game_board[row][col - 'A'] == BLACK_KING))
+            return true; //check up to the left
+        if ((row < DIMEN_LESS1) && (game_board[row + 1][col - 1 - 'A'] == BLACK_SQUARE))
+            return true; //check down to the left
+    }
+
+    if (col < 'H') {
+        if ((row > 0) && (game_board[row - 1][col + 1 - 'A'] == BLACK_SQUARE) &&
+        (game_board[row][col - 'A'] == BLACK_KING))
+            return true; //check up to the right
+        if ((row < DIMEN_LESS1) && (game_board[row + 1][col + 1 - 'A'] == BLACK_SQUARE))
+            return true; //check down to the right
     }
 
     return false;
@@ -735,13 +755,13 @@ bool Board::anything_possible(char turn) {
 //returns: a bool for whether any single space move is possible
 bool Board::any_move(char turn) {
     if (turn == 'W') {
-        for (int i = 0; i < get_num_black(); i++) {
-            if (move_possible((get_place_col_b(i) + 'A'), get_place_row_b(i), 'B'))
+        for (int i = num_black - 1; i > -1; i--) {
+            if (move_possible_b((get_place_col_b(i) + 'A'), get_place_row_b(i)))
                 return true; //check each piece
         }
     } else {
-        for (int i = 0; i < get_num_white(); i++) {
-            if (move_possible((get_place_col_w(i) + 'A'), get_place_row_w(i), 'W'))
+        for (int i = num_white - 1; i > -1; i--) {
+            if (move_possible_w((get_place_col_w(i) + 'A'), get_place_row_w(i)))
                 return true; //check each piece
         }
     }
@@ -785,27 +805,11 @@ bool Board::forced_take(char turn) {
 //parameters: an int for the row of the square, and another for the column
 //returns: content of the indicated board position
 char Board::square(int row, int column) {
-    if ((row < 0) || (row > DIMEN - 1) || (column < 0) || (column > (DIMEN - 1))) {
+    if ((row < 0) || (row > DIMEN_LESS1) || (column < 0) || (column > (DIMEN_LESS1))) {
         return BLANK;
     } else {
         return game_board[row][column];
     }
-}
-
-//look, a board array getter like square, but without a safety measure
-//so one does not go outside the bounds of the array, returning BLANK if so
-//parameters: an int for the row of the square, and another for the column
-//returns: content of the indicated board position
-//warning: do not use with out-of-bounds parameters
-char Board::look(int row, int column) {
-    return game_board[row][column];
-}
-
-//kinged, checks whether a piece was kinged on the last move
-//parameters: NA
-//returns: a bool
-bool Board::kinged() {
-    return just_kinged;
 }
 
 //locate, scans through the board array, placing the position and type of each piece in an array of 
@@ -814,30 +818,16 @@ bool Board::kinged() {
 //returns: void
 void Board::locate() {
     num_white = 0, num_black = 0;
-    
-    bool hold = false;
-    if (game_board[0][0] == BLANK)
-        hold = true;
 
-    for (int i = 0; i < DIMEN; i++) {
-        for (int j = hold; j < DIMEN; j += 2) {
+    for (int j = DIMEN_LESS1; j > -1; j--) {
+        for (int i = 0; i < DIMEN; i++) {
             //check whether it's a black square first to increase efficiency
             if (game_board[i][j] != BLACK_SQUARE) {
-                if (game_board[i][j] == BLACK_PIECE) {
-                    black_places[num_black].row = i;
-                    black_places[num_black].column = j;
-                    black_places[num_black].king = false;
-                    num_black++;
-                } else if (game_board[i][j] == WHITE_PIECE) {
+                if (game_board[i][j] == WHITE_PIECE) {
                     white_places[num_white].row = i;
                     white_places[num_white].column = j;
                     white_places[num_white].king = false;
                     num_white++;
-                } else if (game_board[i][j] == BLACK_KING) {
-                    black_places[num_black].row = i;
-                    black_places[num_black].column = j;
-                    black_places[num_black].king = true;
-                    num_black++;
                 } else if (game_board[i][j] == WHITE_KING) {
                     white_places[num_white].row = i;
                     white_places[num_white].column = j;
@@ -846,17 +836,35 @@ void Board::locate() {
                 }
             }
         }
-        hold = (!hold);
+    }
+
+    for (int j = 0; j < DIMEN; j++) {
+        for (int i = 0; i < DIMEN; i++) {
+            //check whether it's a black square first to increase efficiency
+            if (game_board[i][j] != BLACK_SQUARE) {
+                if (game_board[i][j] == BLACK_PIECE) {
+                    black_places[num_black].row = i;
+                    black_places[num_black].column = j;
+                    black_places[num_black].king = false;
+                    num_black++;
+                }else if (game_board[i][j] == BLACK_KING) {
+                    black_places[num_black].row = i;
+                    black_places[num_black].column = j;
+                    black_places[num_black].king = true;
+                    num_black++;
+                }
+            }
+        }
     }
 }
 
 
 void Board::update(int col1, int row1, int col2, int row2, char taken) {
     if (abs(row2 - row1) == 2) {
+        int col = (col1 + col2)/2;
+        int row = (row1 + row2)/2;
+    
         if ((taken == WHITE_PIECE) || (taken == WHITE_KING)) {
-            int col = (col1 + col2)/2;
-            int row = (row1 + row2)/2;
-
             for (int i = 0; i < num_white; i++) {
                 if ((white_places[i].column == col) && (white_places[i].row == row)) {
                     white_places[i] = white_places[num_white - 1];
@@ -865,9 +873,6 @@ void Board::update(int col1, int row1, int col2, int row2, char taken) {
                 }
             }
         } else {
-            int col = (col1 + col2)/2;
-            int row = (row1 + row2)/2;
-
             for (int i = 0; i < num_black; i++) {
                 if ((black_places[i].column == col) && (black_places[i].row == row)) {
                     black_places[i] = black_places[num_black - 1];
@@ -880,7 +885,7 @@ void Board::update(int col1, int row1, int col2, int row2, char taken) {
 
     if ((game_board[row2][col2] == WHITE_PIECE) || (game_board[row2][col2] == WHITE_KING)) {
         for (int i = 0; i < num_white; i++) {
-            if ((white_places[i].column == col1) && (white_places[i].row == row1)) {
+            if ((white_places[i].row == row1) && (white_places[i].column == col1)) {
                 white_places[i].column = col2;
                 white_places[i].row = row2;
                 if (game_board[row2][col2] == WHITE_KING)
@@ -890,7 +895,7 @@ void Board::update(int col1, int row1, int col2, int row2, char taken) {
         }
     } else {
         for (int i = 0; i < num_black; i++) {
-            if ((black_places[i].column == col1) && (black_places[i].row == row1)) {
+            if ((black_places[i].row == row1) && (black_places[i].column == col1)) {
                 black_places[i].column = col2;
                 black_places[i].row = row2;
                 if (game_board[row2][col2] == BLACK_KING)
@@ -918,13 +923,10 @@ void Board::reverse_update(int col1, int row1, int col2, int row2, char taken) {
             num_white++;
 
             Place temp;
-            for (int i = num_white - 1; i > 0; i--) {
-                if (white_places[i].row < white_places[i - 1].row) {
-                    temp = white_places[i];
-                    white_places[i] = white_places[i - 1];
-                    white_places[i - 1] = temp;
-                }
-            }
+
+            temp = white_places[num_white - 1];
+            white_places[num_white - 1] = white_places[0];
+            white_places[0] = temp;
         } else {
             black_places[num_black].column = col;
             black_places[num_black].row = row;
@@ -937,13 +939,10 @@ void Board::reverse_update(int col1, int row1, int col2, int row2, char taken) {
             num_black++;
 
             Place temp;
-            for (int i = num_black - 1; i > 0; i--) {
-                if (black_places[i].row > black_places[i - 1].row) {
-                    temp = black_places[i];
-                    black_places[i] = black_places[i - 1];
-                    black_places[i - 1] = temp;
-                }
-            }
+
+            temp = black_places[num_black - 1];
+            black_places[num_black - 1] = black_places[0];
+            black_places[0] = temp;
         }
     }
 
@@ -988,22 +987,6 @@ int Board::get_place_row(int num, char color) {
     }
 }
 
-//get_place_row_w, gets the row coordinate of a particular piece in the white Place array, intended 
-//to be more time efficient than get_place_row
-//parameters: an int for the place in the array
-//returns: an int for the coordinate
-int Board::get_place_row_w(int num) {
-    return white_places[num].row;
-}
-
-//get_place_row_b, gets the row coordinate of a particular piece in the black Place array, intended 
-//to be more time efficient than get_place_row
-//parameters: an int for the place in the array
-//returns: an int for the coordinate
-int Board::get_place_row_b(int num) {
-    return black_places[num].row;
-}
-
 //get_place_col, gets the col coordinate of a particular piece in one of the Place arrays
 //parameters: an int for the place in the array, and a string for the array to be accessed
 //returns: an int for the coordinate
@@ -1015,22 +998,6 @@ int Board::get_place_col(int num, char color) {
     }
 }
 
-//get_place_col_w, gets the column coordinate of a particular piece in the white Place array,
-//intended to be more time efficient than get_place_row
-//parameters: an int for the place in the array
-//returns: an int for the coordinate
-int Board::get_place_col_w(int num) {
-    return white_places[num].column;
-}
-
-//get_place_col_b, gets the column coordinate of a particular piece in the black Place array,
-//intended to be more time efficient than get_place_row
-//parameters: an int for the place in the array
-//returns: an int for the coordinate
-int Board::get_place_col_b(int num) {
-    return black_places[num].column;
-}
-
 //get_place_king, gets whether a piece in one of the Place arrays is a king
 //parameters: an int for the place in the array, and a string for the array to be accessed
 //returns: a bool for whether it's a king
@@ -1040,34 +1007,6 @@ int Board::get_place_king(int num, char color) {
     } else {
         return black_places[num].king;
     }
-}
-
-//get_place_king_w, gets whether a piece in the white Place array is a king
-//parameters: an int for the place in the array
-//returns: a bool for whether it's a king
-int Board::get_place_king_w(int num) {
-    return white_places[num].king;
-}
-
-//get_place_king_w, gets whether a piece in the white Place array is a king
-//parameters: an int for the place in the array
-//returns: a bool for whether it's a king
-int Board::get_place_king_b(int num) {
-    return black_places[num].king;
-}
-
-//get the number of black pieces
-//parameters: NA
-//returns: an int for the number
-int Board::get_num_black() {
-    return num_black;
-}
-
-//get the number of white pieces
-//parameters: NA
-//returns: an int for the number
-int Board::get_num_white() {
-    return num_white;
 }
 
 //num_jumps, checks how many possible taking moves there are from a particular square
@@ -1102,7 +1041,7 @@ int Board::num_jumps(char col, int row) {
 //returns: a bool indicating if the move is valid
 bool Board::simple_check(char column1, int row1, char column2, int row2, char turn) {
     //Check that the positions are actually on the board
-    if ((column2 - 'A' > DIMEN - 1) || (column2 - 'A' < 0) || (row2 > DIMEN - 1) || (row2 < 0))
+    if ((column2 - 'A' > DIMEN_LESS1) || (column2 - 'A' < 0) || (row2 > DIMEN_LESS1) || (row2 < 0))
         return false;
 
     //Make sure that player is moving to an emptry square
@@ -1242,19 +1181,5 @@ bool Board::black_piece_valid(int col1, int row1, int col2, int row2) {
 
     return false;
 }
-
-string* Board::get_key() {
-    key->at(64) = 'N';
-
-    if (just_kinged)
-        key->at(64) = 'K';
-
-    return key;
-}
-
-
-
-
-
 
 
